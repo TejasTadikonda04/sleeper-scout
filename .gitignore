@@ -1,3 +1,6 @@
 PLAN.md
 venv/
 nfl_combine_2010_to_2023.csv
+combine_av.csv
+combine_av_share.csv
+combine_college.csv
