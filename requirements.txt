@@ -1,0 +1,10 @@
+pandas
+scikit-learn
+matplotlib
+requests
+rapidfuzz
+python-dotenv
+lxml
+nfl_data_py
+appdirs
+pyarrow
