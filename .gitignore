@@ -1,2 +1,4 @@
-PLAN.md
 venv/
+.env
+data/
+output/
