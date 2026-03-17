@@ -8,3 +8,4 @@ lxml
 nfl_data_py
 appdirs
 pyarrow
+xgboost
