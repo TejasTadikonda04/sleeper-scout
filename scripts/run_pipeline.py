@@ -4,8 +4,10 @@ Main ETL entry point.
 Usage (from project root with venv activated):
     python scripts/run_pipeline.py
 
+Output:
+    nfl_prospects.csv  — merged combine + draft + college stats
+
 Environment variables (set in .env):
-    DB_URL          PostgreSQL connection string
     CFBD_API_KEY    College Football Data API key (free at https://collegefootballdata.com/key)
 """
 
@@ -17,11 +19,30 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 
 from src.config import CFBD_API_KEY
-from src.db import get_engine, create_table, upsert_prospects
 from src.ingest.nflverse import load_combine, load_draft_picks
 from src.ingest.cfbd import fetch_raw_college_stats
 from src.transform.clean import clean_combine, clean_draft_picks
 from src.transform.merge import build_final_table
+
+OUTPUT_PATH = Path(__file__).parent.parent / "nfl_prospects.csv"
+
+# Column order matching the original nfl_prospects schema
+COLUMN_ORDER = [
+    "pfr_id", "cfb_id", "gsis_id", "player_name", "position",
+    "draft_year", "draft_round", "draft_pick", "draft_team", "college",
+    "height_in", "weight_lbs", "forty_yard", "vertical_jump", "broad_jump",
+    "bench_reps", "cone_drill", "shuttle",
+    "col_pass_completions", "col_pass_attempts", "col_pass_yards",
+    "col_pass_tds", "col_pass_ints",
+    "col_rush_attempts", "col_rush_yards", "col_rush_tds",
+    "col_receptions", "col_rec_yards", "col_rec_tds",
+    "col_total_tackles", "col_tfl", "col_sacks", "col_ints",
+    "col_pass_deflections", "col_qb_hurries",
+    "col_fg_made", "col_fg_attempted", "col_xp_made", "col_xp_attempted",
+    "col_punts", "col_punt_yards",
+    "career_av", "weighted_av", "draft_team_av",
+    "nfl_games", "pro_bowls", "all_pro", "seasons_started", "hof",
+]
 
 
 def main() -> None:
@@ -32,15 +53,15 @@ def main() -> None:
         )
 
     # ── Step 1: nflverse combine ───────────────────────────────────────────
-    print("\n=== Step 1/5: Loading nflverse combine data ===")
+    print("\n=== Step 1/4: Loading nflverse combine data ===")
     combine = clean_combine(load_combine())
 
     # ── Step 2: nflverse draft picks + career AV ──────────────────────────
-    print("\n=== Step 2/5: Loading nflverse draft picks + AV ===")
+    print("\n=== Step 2/4: Loading nflverse draft picks + AV ===")
     draft = clean_draft_picks(load_draft_picks())
 
     # ── Step 3: CFBD college stats ─────────────────────────────────────────
-    print("\n=== Step 3/5: Fetching CFBD college stats ===")
+    print("\n=== Step 3/4: Fetching CFBD college stats ===")
     if CFBD_API_KEY:
         raw_stats = fetch_raw_college_stats()
     else:
@@ -50,16 +71,17 @@ def main() -> None:
         )
         print("  Skipped — no CFBD_API_KEY.")
 
-    # ── Step 4: Merge all sources ─────────────────────────────────────────
-    print("\n=== Step 4/5: Merging datasets ===")
+    # ── Step 4: Merge and write CSV ────────────────────────────────────────
+    print("\n=== Step 4/4: Merging and writing CSV ===")
     final = build_final_table(combine, draft, raw_stats)
 
-    # ── Step 5: Load to PostgreSQL ────────────────────────────────────────
-    print("\n=== Step 5/5: Loading to PostgreSQL ===")
-    engine = get_engine()
-    create_table(engine)
-    n = upsert_prospects(final, engine)
-    print(f"  Upserted {n} rows into nfl_prospects.")
+    # Reorder columns — include any extras not in COLUMN_ORDER at the end
+    ordered = [c for c in COLUMN_ORDER if c in final.columns]
+    extras  = [c for c in final.columns if c not in COLUMN_ORDER]
+    final   = final[ordered + extras]
+
+    final.to_csv(OUTPUT_PATH, index=False)
+    print(f"  Wrote {len(final)} rows to {OUTPUT_PATH}")
     print("\nPipeline complete.")
 
 

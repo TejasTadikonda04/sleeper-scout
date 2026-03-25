@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_URL: str = os.getenv("DB_URL", "postgresql://localhost/sleeper_scout")
 CFBD_API_KEY: str = os.getenv("CFBD_API_KEY", "")
 
 START_YEAR: int = 2000

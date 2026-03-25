@@ -1,10 +1,8 @@
 nflreadpy
-cfbd
 pandas
 numpy
-sqlalchemy
-psycopg2-binary
 python-dotenv
 rapidfuzz
 tqdm
 pyarrow
+requests
