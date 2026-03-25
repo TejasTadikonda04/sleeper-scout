@@ -16,9 +16,6 @@ CFBD_STAT_CATEGORIES: list[str] = [
     "passing",
     "rushing",
     "receiving",
-    "defensive",
-    "kicking",
-    "punting",
 ]
 
 # Maps (cfbd_category, cfbd_stat_type) → nfl_prospects column name.
