@@ -1,2 +1,5 @@
 PLAN.md
 venv/
+.env
+__pycache__
+__init__.py
