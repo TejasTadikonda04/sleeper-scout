@@ -25,6 +25,7 @@ from src.transform.clean import clean_combine, clean_draft_picks
 from src.transform.merge import build_final_table
 
 OUTPUT_PATH = Path(__file__).parent.parent / "nfl_prospects.csv"
+CACHE_PATH  = Path(__file__).parent.parent / ".pipeline_cache.parquet"
 
 # Column order matching the original nfl_prospects schema
 COLUMN_ORDER = [
@@ -45,7 +46,26 @@ COLUMN_ORDER = [
 ]
 
 
-def main() -> None:
+def save_csv(final: pd.DataFrame) -> None:
+    ordered = [c for c in COLUMN_ORDER if c in final.columns]
+    extras  = [c for c in final.columns if c not in COLUMN_ORDER]
+    final   = final[ordered + extras]
+    final.to_csv(OUTPUT_PATH, index=False)
+    print(f"  Wrote {len(final)} rows to {OUTPUT_PATH}")
+
+
+def main(from_cache: bool = False) -> None:
+    if from_cache:
+        if not CACHE_PATH.exists():
+            print(f"No cache found at {CACHE_PATH}. Run without --from-cache first.")
+            sys.exit(1)
+        print(f"Loading merged data from cache ({CACHE_PATH})...")
+        final = pd.read_parquet(CACHE_PATH)
+        print(f"  {len(final)} rows loaded.")
+        save_csv(final)
+        print("\nDone.")
+        return
+
     if not CFBD_API_KEY:
         print(
             "WARNING: CFBD_API_KEY is not set — college stats will be skipped.\n"
@@ -75,15 +95,14 @@ def main() -> None:
     print("\n=== Step 4/4: Merging and writing CSV ===")
     final = build_final_table(combine, draft, raw_stats)
 
-    # Reorder columns — include any extras not in COLUMN_ORDER at the end
-    ordered = [c for c in COLUMN_ORDER if c in final.columns]
-    extras  = [c for c in final.columns if c not in COLUMN_ORDER]
-    final   = final[ordered + extras]
+    # Cache merged result so --from-cache can re-save without re-fetching
+    final.to_parquet(CACHE_PATH, index=False)
+    print(f"  Cached merged data to {CACHE_PATH}")
 
-    final.to_csv(OUTPUT_PATH, index=False)
-    print(f"  Wrote {len(final)} rows to {OUTPUT_PATH}")
+    save_csv(final)
     print("\nPipeline complete.")
 
 
 if __name__ == "__main__":
-    main()
+    from_cache = "--from-cache" in sys.argv
+    main(from_cache=from_cache)

@@ -3,3 +3,5 @@ venv/
 .env
 __pycache__
 __init__.py
+.pipeline_cache.parquet
+nfl_prospects.csv
