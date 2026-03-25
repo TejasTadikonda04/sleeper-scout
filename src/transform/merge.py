@@ -116,7 +116,15 @@ def _build_prospect_cfbd_map(
     all_keys = list(lookup.keys())
 
     rows = []
+    seen_pfr: set = set()
     for _, row in prospects.iterrows():
+        pfr_id = row.get("pfr_id")
+        # Skip rows without a pfr_id — null keys cause cartesian-product fan-out on merge
+        if pd.isna(pfr_id) or pfr_id is None or str(pfr_id) in ("nan", "None", ""):
+            continue
+        if str(pfr_id) in seen_pfr:
+            continue
+        seen_pfr.add(str(pfr_id))
         cfbd_id = _match_player(
             str(row.get("player_name", "")),
             str(row.get("college", "")),
@@ -124,7 +132,7 @@ def _build_prospect_cfbd_map(
             all_keys,
         )
         if cfbd_id:
-            rows.append({"pfr_id": row["pfr_id"], "cfbd_player_id": cfbd_id})
+            rows.append({"pfr_id": pfr_id, "cfbd_player_id": cfbd_id})
 
     df = pd.DataFrame(rows)
     print(f"[merge] Prospects matched to a CFBD player_id: {len(df)} / {len(prospects)}")
@@ -268,5 +276,17 @@ def build_final_table(
         prospects = prospects.drop(columns=["draft_ovr"], errors="ignore")
 
     prospects = prospects.dropna(subset=["player_name"])
+
+    # Deduplicate: keep the row with the most non-null values for each player
+    dedup_keys = ["pfr_id", "player_name", "draft_year", "draft_pick"]
+    dedup_keys = [k for k in dedup_keys if k in prospects.columns]
+    prospects["_notnull_count"] = prospects.notna().sum(axis=1)
+    prospects = (
+        prospects
+        .sort_values("_notnull_count", ascending=False)
+        .drop_duplicates(subset=dedup_keys, keep="first")
+        .drop(columns=["_notnull_count"])
+    )
+
     print(f"[merge] Final table rows: {len(prospects)}")
     return prospects.reset_index(drop=True)
