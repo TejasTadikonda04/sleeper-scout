@@ -12,11 +12,26 @@ from ..config import (
 )
 
 _BASE_URL = "https://api.collegefootballdata.com"
-_REQUEST_DELAY = 0.4  # seconds between API calls to stay within rate limits
+_REQUEST_DELAY = 1.0   # base seconds between requests
+_MAX_RETRIES   = 4     # retry up to 4 times on 429
 
 
 def _get_headers() -> dict:
     return {"Authorization": f"Bearer {CFBD_API_KEY}"}
+
+
+def _get_with_retry(url: str, params: dict) -> requests.Response:
+    """GET with exponential backoff on 429 Too Many Requests."""
+    delay = _REQUEST_DELAY
+    for attempt in range(_MAX_RETRIES):
+        resp = requests.get(url, headers=_get_headers(), params=params, timeout=30)
+        if resp.status_code == 429:
+            wait = delay * (2 ** attempt)
+            print(f"\n[CFBD] Rate limited — waiting {wait:.1f}s before retry {attempt + 1}/{_MAX_RETRIES}")
+            time.sleep(wait)
+            continue
+        return resp
+    return resp  # return last response even if still 429
 
 
 def fetch_raw_college_stats() -> pd.DataFrame:
@@ -35,11 +50,9 @@ def fetch_raw_college_stats() -> pd.DataFrame:
         for year in years:
             for category in CFBD_STAT_CATEGORIES:
                 try:
-                    resp = requests.get(
+                    resp = _get_with_retry(
                         f"{_BASE_URL}/stats/player/season",
-                        headers=_get_headers(),
                         params={"year": year, "category": category},
-                        timeout=30,
                     )
                     resp.raise_for_status()
                     for r in resp.json():
