@@ -1,88 +1,129 @@
 # DraftSleeper
 
-DraftSleeper predicts NFL career value (weighted Approximate Value) for skill-position
-draft prospects using pre-draft college stats and combine metrics, then surfaces
-undervalued players using a Sleeper-style UI. The project is built on a single
-self-contained dataset — no scraping, no entity resolution — and uses position-group
-models to produce a Sleeper Score (0–100) and draft window recommendation per prospect.
+An NFL draft prospect forecasting tool that predicts career value for skill-position players and surfaces undervalued picks through a Sleeper-style UI. Given a prospect's college production, combine metrics, and draft position, DraftSleeper produces a **Sleeper Score (0–100)** and draft window recommendation.
+
+---
+
+## What It Does
+
+DraftSleeper trains position-group regression models on historical draft data (2000–2019) and evaluates on a hold-out set (2020–2024). For each prospect, it outputs:
+
+- **Weighted AV prediction** — projected career value based on Pro Football Reference's weighted Approximate Value metric
+- **Surplus value** — how much a player's projection exceeds (or falls short of) what players drafted at that slot typically produce
+- **Sleeper Score** — a 0–100 composite combining surplus value, breakout probability, peak upside, and durability
+- **Tier label** — a plain-language classification (High Upside, Safe Floor, Boom or Bust, Developmental, Overdrafted)
+
+Results are served through a FastAPI backend and rendered in a React + Vite frontend.
 
 ---
 
 ## Source Data
 
 **File:** `data/raw/nfl_prospects.csv`
-**Rows:** 6,387 players | **Scope used:** 2,047 skill-position players (QB, WR, TE, RB)
-**Years:** 2000–2024 (draft year)
-**Origin:** Pre-joined dataset combining PFR draft results, combine metrics, college
-stats, and NFL career outcomes. No additional data collection or entity resolution
-required.
+
+A pre-joined dataset of 6,387 drafted players combining PFR draft results, combine metrics, college stats, and NFL career outcomes. The project filters to 2,047 skill-position players (QB, WR, TE, RB).
 
 ### Key Columns
 
-| Column | Type | Description |
-|---|---|---|
-| `pfr_id` | str | Pro Football Reference player ID |
-| `cfb_id` | str | College Football Reference player ID |
-| `gsis_id` | str | NFL GSIS player ID |
-| `player_name` | str | Full player name |
-| `position` | str | Raw position (QB, WR, TE, RB in scope) |
-| `draft_year` | int | NFL Draft year |
-| `draft_round` | int | Draft round (1–7) |
-| `draft_pick` | int | Overall pick number (1–262) |
-| `draft_team` | str | Drafting NFL team |
-| `college` | str | College attended |
-| `height_in` | float | Height in inches |
-| `weight_lbs` | float | Weight in pounds |
-| `forty_yard` | float | 40-yard dash time (seconds) |
-| `vertical_jump` | float | Vertical jump (inches) |
-| `broad_jump` | float | Broad jump (inches) |
-| `bench_reps` | float | Bench press reps at 225 lbs |
-| `cone_drill` | float | 3-cone drill time (seconds) |
-| `shuttle` | float | Shuttle run time (seconds) |
-| `col_pass_completions` | float | College passing completions |
-| `col_pass_attempts` | float | College passing attempts |
-| `col_pass_yards` | float | College passing yards |
-| `col_pass_tds` | float | College passing touchdowns |
-| `col_pass_ints` | float | College passing interceptions |
-| `col_rush_attempts` | float | College rushing attempts |
-| `col_rush_yards` | float | College rushing yards |
-| `col_rush_tds` | float | College rushing touchdowns |
-| `col_receptions` | float | College receptions |
-| `col_rec_yards` | float | College receiving yards |
-| `col_rec_tds` | float | College receiving touchdowns |
-| `weighted_av` | float | **Primary target** — weighted career AV (PFR) |
-| `career_av` | float | Raw career AV — 100% null, do not use |
-| `draft_team_av` | float | AV accumulated with drafting team only |
-| `nfl_games` | float | Career NFL games played |
-| `pro_bowls` | int | Career Pro Bowl selections |
-| `all_pro` | int | Career All-Pro selections |
-| `seasons_started` | int | Career seasons as primary starter |
-| `hof` | bool | Hall of Fame inductee flag |
+| Column | Description |
+|---|---|
+| `player_name`, `position`, `college` | Player identity |
+| `draft_year`, `draft_round`, `draft_pick`, `draft_team` | Draft context |
+| `height_in`, `weight_lbs` | Measurables |
+| `forty_yard`, `vertical_jump`, `broad_jump`, `bench_reps`, `cone_drill`, `shuttle` | Combine metrics |
+| `col_pass_completions` through `col_rec_tds` | College production stats |
+| `weighted_av` | **Target variable** — weighted career Approximate Value |
+| `nfl_games`, `pro_bowls`, `all_pro`, `seasons_started`, `hof` | NFL outcome indicators |
 
-### Known Data Constraints
+### Data Constraints
 
-- `career_av` is 100% null — never reference it in any code or model
-- `weighted_av` has 11.9% null in the training window — flag with `missing_outcome`,
-  exclude from model training, but retain rows for feature analysis
-- Combine metrics are heavily missing: `bench_reps` (54%), `cone_drill` (47%),
-  `shuttle` (46%), `broad_jump` (36%), `vertical_jump` (34%), `forty_yard` (20%)
-- College stat nulls for position-inapplicable columns (e.g., `col_pass_yards` for
-  RBs) are expected and must be treated as NaN, never 0
-- `col_total_tackles`, `col_tfl`, `col_sacks`, `col_ints`, `col_pass_deflections`,
-  `col_qb_hurries`, `col_fg_*`, `col_xp_*`, `col_punts`, `col_punt_yards` are
-  100% null — do not use
+- **`career_av` is 100% null** — never used anywhere in the pipeline. `weighted_av` is the only valid target.
+- **Combine metrics are heavily missing:** `bench_reps` (54%), `cone_drill` (47%), `shuttle` (46%), `broad_jump` (36%), `vertical_jump` (34%), `forty_yard` (20%). Missing values are flagged, not dropped.
+- **`weighted_av` is 11.9% null** in the training window. These rows are excluded from model training but retained for feature analysis.
+- Defensive and special teams stat columns (`col_total_tackles`, `col_sacks`, `col_fg_*`, etc.) are 100% null and unused.
 
 ---
 
-## Pipeline Overview
+## Pipeline
 
-| Stage | Description |
+### Phase 1 — Data Preparation
+
+Loads `nfl_prospects.csv`, filters to QB/WR/TE/RB, and splits into four CSVs by position group and time period:
+
+| File | Group | Years |
+|---|---|---|
+| `skill_pass_train.csv` | QB, WR, TE | 2000–2019 |
+| `skill_pass_holdout.csv` | QB, WR, TE | 2020–2024 |
+| `skill_run_train.csv` | RB | 2000–2019 |
+| `skill_run_holdout.csv` | RB | 2020–2024 |
+
+The split is strictly by `draft_year` — never random. A data audit report (`data_audit.txt`) is generated documenting null rates and distributions.
+
+### Phase 2 — Feature Engineering
+
+Builds position-group-specific features from the raw columns:
+
+- **Athletic composites** — speed score, burst score, agility score, BMI
+- **Z-scored combine metrics** — normalized within position group (e.g., `forty_yard_z`, `burst_score_z`)
+- **College production rates** — yards per carry, rush TD rate, reception rate, dominator rating, completion percentage, TD/INT ratio
+- **Draft capital features** — pick value curve, early pick flag, Day 3 flag
+- **Missing data flags** — boolean columns like `missing_combine`, `missing_college_stats`, `missing_outcome`
+
+College stat columns that don't apply to a position (e.g., `col_pass_yards` for RBs) are set to NaN, not zero.
+
+### Phase 3 — Modeling + Sleeper Scoring
+
+Two model types are trained per position group:
+
+- **Ridge regression** — baseline model
+- **XGBoost** — primary model
+
+Both predict `weighted_av`. Models are trained on the 2000–2019 data only; scalers and encoders are fit on train and applied to hold-out.
+
+**Evaluation metrics (hold-out set):**
+
+| Group | Model | N | RMSE | MAE | Spearman ρ |
+|---|---|---|---|---|---|
+| skill_pass | Ridge | 281 | 15.29 | 11.52 | 0.52 |
+| skill_pass | XGBoost | 281 | 15.76 | 11.61 | 0.57 |
+| skill_run | Ridge | 96 | 12.77 | 10.96 | 0.51 |
+| skill_run | XGBoost | 96 | 11.18 | 9.38 | 0.57 |
+
+XGBoost outperforms Ridge on Spearman rank correlation for both groups, meaning it ranks prospects more accurately even when point predictions carry noise.
+
+**Sleeper Score formula:**
+
+```
+sleeper_score = (
+    0.40 × surplus_value_percentile +
+    0.20 × pro_bowl_probability +
+    0.20 × peak_value_percentile +
+    0.20 × availability_factor
+) × 100
+```
+
+All component columns are retained in the scored output for transparency.
+
+### Phase 4 — API Layer
+
+A FastAPI application serves the scored data. Endpoints:
+
+| Endpoint | Description |
 |---|---|
-| 1. Data Preparation | Load, filter, audit, and split `nfl_prospects.csv` into train and hold-out sets |
-| 2. Feature Engineering | Build position-group-specific features from combine metrics and college stats |
-| 3. Modeling | Train weighted_av regression models per position group; compute Sleeper Scores |
-| 4. API Layer | Expose model outputs via a FastAPI REST API |
-| 5. UI Layer | Render prospect cards, scores, and comparisons in a Sleeper-style React UI |
+| `GET /prospects` | List prospects with filtering (position, round, name search) |
+| `GET /prospects/{id}` | Single prospect profile with full prediction data |
+| `GET /prospects/{id}/score` | Sleeper Score breakdown for a prospect |
+| `GET /scores/top` | Leaderboard sorted by Sleeper Score |
+
+Storage is SQLite via SQLAlchemy. API docs auto-generate at `/docs`.
+
+### Phase 5 — UI Layer
+
+A React + Vite frontend with Tailwind CSS and Recharts. Three views:
+
+- **Prospect List** — sortable/filterable table showing Sleeper Score, surplus value, breakout probability, and tier label
+- **Prospect Detail** — full player profile with athletic radar chart (z-scored combine metrics), surplus value gauge, availability meter, and top projection drivers
+- **Top Sleepers** — leaderboard of highest-scoring prospects across both position groups
 
 ---
 
@@ -90,234 +131,117 @@ required.
 
 ```
 draftsleeper/
-│
-├── README.md
-├── requirements.txt
-├── .env.example
-├── .gitignore
-│
 ├── data/
-│   ├── raw/
-│   │   └── nfl_prospects.csv               # Source file — never modified
-│   ├── processed/
-│   │   ├── skill_pass_train.csv            # QB, WR, TE — 2000–2019
-│   │   ├── skill_pass_holdout.csv          # QB, WR, TE — 2020–2024
-│   │   ├── skill_run_train.csv             # RB — 2000–2019
-│   │   ├── skill_run_holdout.csv           # RB — 2020–2024
-│   │   └── data_audit.txt                  # Null rates, distributions, flag inventory
-│   └── features/
-│       ├── skill_pass_features_train.csv
-│       ├── skill_pass_features_holdout.csv
-│       ├── skill_run_features_train.csv
-│       └── skill_run_features_holdout.csv
-│
+│   ├── raw/                          # Source file (read-only)
+│   ├── processed/                    # Train/holdout splits + audit
+│   └── features/                     # Engineered feature tables
 ├── models/
-│   ├── saved/
-│   │   ├── xgboost_skill_pass.pkl
-│   │   ├── xgboost_skill_run.pkl
-│   │   ├── ridge_baseline_skill_pass.pkl
-│   │   └── ridge_baseline_skill_run.pkl
-│   └── results/
-│       ├── evaluation_summary.csv
-│       └── feature_importance.csv
-│
+│   ├── saved/                        # Serialized model files (joblib)
+│   └── results/                      # evaluation_summary.csv, feature_importance.csv
 ├── src/
-│   ├── data_preparation/
-│   │   ├── PLAN_01_data_preparation.md
-│   │   ├── load_and_split.py
-│   │   └── audit_data.py
-│   │
-│   ├── feature_engineering/
-│   │   ├── PLAN_02_feature_engineering.md
-│   │   ├── shared_features.py
-│   │   ├── engineering_skill_pass.py
-│   │   └── engineering_skill_run.py
-│   │
-│   ├── modeling/
-│   │   ├── PLAN_03_modeling.md
-│   │   ├── base.py
-│   │   ├── xgboost_model.py
-│   │   ├── ridge_baseline.py
-│   │   ├── train_skill_pass.py
-│   │   ├── train_skill_run.py
-│   │   └── evaluate_all.py
-│   │
-│   ├── scores/
-│   │   └── sleeper_score.py
-│   │
-│   ├── api/
-│   │   ├── PLAN_04_api.md
-│   │   ├── main.py
-│   │   ├── database.py
-│   │   ├── schemas.py
-│   │   ├── routers/
-│   │   │   ├── prospects.py
-│   │   │   └── scores.py
-│   │   └── tests/
-│   │       ├── conftest.py
-│   │       └── test_endpoints.py
-│   │
-│   └── ui/
-│       ├── PLAN_05_ui.md
-│       ├── index.html
-│       ├── vite.config.js
-│       ├── tailwind.config.js
-│       ├── package.json
-│       └── src/
-│           ├── App.jsx
-│           ├── main.jsx
-│           ├── api/
-│           │   └── client.js
-│           ├── components/
-│           │   ├── NavBar.jsx
-│           │   ├── SleeperScoreBadge.jsx
-│           │   ├── ProspectCard.jsx
-│           │   ├── ScoreBreakdown.jsx
-│           │   ├── LoadingState.jsx
-│           │   └── ErrorState.jsx
-│           └── views/
-│               ├── ProspectList.jsx
-│               ├── ProspectDetail.jsx
-│               └── TopSleepers.jsx
-│
-└── notebooks/
-    ├── 01_data_audit.ipynb
-    ├── 02_feature_exploration.ipynb
-    └── 03_model_evaluation.ipynb
+│   ├── data_preparation/             # Load, filter, audit, split
+│   ├── feature_engineering/          # Shared + position-specific feature builders
+│   ├── modeling/                     # Ridge baseline, XGBoost, training, evaluation
+│   ├── scores/                       # Sleeper Score computation
+│   ├── api/                          # FastAPI app, routers, schemas, tests
+│   └── ui/                           # React + Vite frontend
+└── notebooks/                        # Exploratory analysis and evaluation notebooks
 ```
 
 ---
 
-## Phased Roadmap
+## Tech Stack
 
-### Phase 1 — Data Preparation
-**Goal:** Load, filter to skill positions, audit, and split the source file into
-clean train and hold-out CSVs ready for feature engineering.
-**Milestone:** Four split CSVs exist in `data/processed/`; audit report confirms
-null rates and `weighted_av` availability per position group.
-**Go/No-Go Gate:** No player with `draft_year <= 2019` appears in any holdout file.
-`weighted_av` null rate in train confirmed at <15% per position group. `career_av`
-column confirmed absent from all processed outputs.
-**Effort:** Small — single file source, no joining required.
-
----
-
-### Phase 2 — Feature Engineering
-**Goal:** Produce position-group feature tables with engineered combine composites,
-college production metrics, and missing-data flags.
-**Milestone:** Four feature CSVs exist (train + holdout × 2 groups); feature audit
-confirms no silent nulls and all flag columns present.
-**Go/No-Go Gate:** No feature column exceeds 60% null without a corresponding
-boolean flag. `is_QB`, `is_WR`, `is_TE` sum to exactly 1 for every row in
-`skill_pass` tables. `position_group` column contains only `skill_pass` or
-`skill_run`.
-**Effort:** Small-to-medium — logic is straightforward, position-specific separation
-requires care.
+| Layer | Technology |
+|---|---|
+| Language | Python 3.13 |
+| Modeling | XGBoost, scikit-learn (Ridge) |
+| Serialization | joblib |
+| API | FastAPI, uvicorn, Pydantic v2 |
+| Storage | SQLite via SQLAlchemy Core |
+| Frontend | React, Vite, Tailwind CSS, Recharts |
 
 ---
 
-### Phase 3 — Modeling + Sleeper Scoring
-**Goal:** Train, tune, and evaluate weighted_av regression models for both position
-groups; compute Sleeper Scores for all players.
-**Milestone:** Evaluation report generated; XGBoost outperforms Ridge baseline on
-Spearman rank correlation for both groups on the hold-out set. Sleeper Scores
-bounded [0, 100] for all players.
-**Go/No-Go Gate:** Spearman rank correlation > 0.30 on hold-out for at least one
-position group. All Sleeper Score components retained as columns in scored output.
-**Effort:** Medium — two position groups, hyperparameter tuning, evaluation rigor.
+## How to Run
 
----
+### Prerequisites
 
-### Phase 4 — API Layer
-**Goal:** Expose scored prospect data through a documented FastAPI REST API.
-**Milestone:** All endpoints return valid JSON for test players from both groups;
-API runs locally with uvicorn; OpenAPI docs auto-generated at `/docs`.
-**Go/No-Go Gate:** `/prospects`, `/prospects/{id}`, `/prospects/{id}/score`, and
-`/scores/top` all return correct responses; 404s handled cleanly.
-**Effort:** Small-to-medium.
+- Python 3.13+
+- Node.js 18+
 
----
+### Backend
 
-### Phase 5 — UI Layer
-**Goal:** Render prospect cards, Sleeper Scores, and comparisons in a Sleeper-style
-React + Vite UI consuming the live API.
-**Milestone:** Prospect List, Prospect Detail, and Top Sleepers views render with
-live data; no hardcoded player values anywhere in the component tree.
-**Go/No-Go Gate:** UI renders at least one player from each position group; search
-bar functional; Sleeper Score badge displays correct color tier.
-**Effort:** Medium.
+```bash
+pip install -r requirements.txt
 
----
+# Run the full pipeline (data → features → models → scores)
+python src/data_preparation/load_and_split.py
+python src/feature_engineering/engineering_skill_pass.py
+python src/feature_engineering/engineering_skill_run.py
+python src/modeling/train_skill_pass.py
+python src/modeling/train_skill_run.py
+python src/modeling/evaluate_all.py
+python src/scores/sleeper_score.py
 
-## Dependency Order
-
+# Start the API
+uvicorn src.api.main:app --reload
 ```
-Phase 1 (Data Preparation)
-    └── Phase 2 (Feature Engineering)
-            └── Phase 3 (Modeling + Sleeper Scoring)
-                    └── Phase 4 (API Layer)          ← schema design can begin during Phase 3
-                            └── Phase 5 (UI Layer)   ← scaffold with fixture data during Phase 4
+
+### Frontend
+
+```bash
+cd src/ui
+npm install
+npm run dev
 ```
 
 ---
 
-## Open Decisions Log
+## Key Design Decisions
 
-### 1. Frontend Framework
-**Recommended default:** React + Vite with Recharts and Tailwind CSS.
-Widest portfolio recognizability; fastest local dev setup.
+**Why weighted AV?** It's the most widely available career value metric in the source data. `career_av` was 100% null and unusable. Weighted AV front-loads recent seasons, which better captures early-career trajectory — relevant for draft evaluation.
 
-### 2. Storage
-**Recommended default:** SQLite via SQLAlchemy Core for the API layer.
-Raw and feature data stays as CSVs. No server required.
+**Why two position groups instead of four?** QB/WR/TE share passing and receiving production features. RB is distinct enough in its feature profile (rushing volume, speed score, burst) to warrant a separate model. Splitting further (e.g., QB alone) would leave too few training samples for reliable evaluation.
 
-### 3. API Framework
-**Recommended default:** FastAPI + uvicorn. Auto-generates OpenAPI docs;
-Pydantic v2 validation built in.
+**Why XGBoost over neural nets?** With ~1,500 training samples for skill_pass and ~400 for skill_run, gradient boosting outperforms deeper architectures that need more data. XGBoost also handles missing features natively, which matters given combine metric missingness rates of 20–54%.
 
-### 4. Model Serialization
-**Recommended default:** joblib for XGBoost and sklearn objects.
-
-### 5. Sleeper Score Weights
-**Current defaults:** surplus_value_percentile (40%), pro_bowl_probability (20%),
-peak_value_percentile (20%), availability_factor (20%). Tune after modeling is
-complete — do not tune against hold-out.
+**Why time-based splits?** Random splits would leak future draft class information into training. A coach evaluating the 2024 class should see predictions built only on historical data, which is what the 2000–2019 / 2020–2024 split enforces.
 
 ---
 
-## Key Constraints
+## Feature Importance (Top Drivers)
 
-These apply to every stage, every script, and every prompt in this project.
+### skill_pass (QB, WR, TE)
 
-**Source file:** `data/raw/nfl_prospects.csv` is read-only. Never modify it.
-Copy filtered subsets to `data/processed/`.
+The model relies most heavily on draft position, positional identity (is_QB), and explosive athleticism (broad jump). College passing and receiving volume round out the top features.
 
-**Target variable:** `weighted_av` only. `career_av` is 100% null —
-never reference it in any code, comment, or prompt.
+### skill_run (RB)
 
-**Position scope:** QB, WR, TE, RB only. All other positions must be
-filtered out before any processed file is written. K, P, LS, OL, DL,
-LB, DB are out of scope.
+Draft capital dominates — the top five features are all draft-position-related (is_early_pick, is_day_3_pick, draft_pick, draft_round, pick_value). This reflects the reality that for RBs, where you're drafted largely determines your opportunity, which drives AV. Agility metrics (shuttle, agility score) and college rushing volume are the first non-capital features.
 
-**Position group labels:** `skill_pass` (QB, WR, TE) and `skill_run` (RB).
-These are the only valid values for the `position_group` column in any
-processed, feature, or scored file. Raw position strings (QB, WR, etc.)
-are allowed only in input processing code.
+---
 
-**Train/hold-out split:** Train = `draft_year <= 2019`. Hold-out =
-`draft_year >= 2020`. Split is always on `draft_year` — never random.
-Hold-out data must never be seen during training or hyperparameter tuning.
-Scalers and encoders must be fit on train only, then applied to hold-out.
+## Scored Output Columns
 
-**Missing data:** Never silently drop rows. Add boolean flag columns
-(e.g., `missing_combine=True`, `missing_outcome=True`) and retain rows.
-Excluded from model training only when `weighted_av` is null
-(`missing_outcome=True`); retained for all other processing.
+The final scored CSVs (`skill_pass_scored.csv`, `skill_run_scored.csv`) include all original columns plus:
 
-**Inapplicable features:** College stat columns that do not apply to a
-position (e.g., `col_pass_yards` for RBs) must be set to NaN — never 0.
-Zero is a valid feature value; NaN signals not applicable.
+| Column | Description |
+|---|---|
+| `weighted_av_pred` | Model's predicted weighted AV |
+| `surplus_value` | Predicted AV minus expected AV for that draft slot |
+| `surplus_value_percentile` | Surplus value ranked within position group (0–1) |
+| `pro_bowl_probability` | Estimated probability of making a Pro Bowl |
+| `peak_value_percentile` | Projected peak single-season value, as a percentile |
+| `availability_factor` | Durability projection (0 = high risk, 1 = durable) |
+| `sleeper_score` | Final composite score (0–100) |
 
-**Python version:** 3.13
+---
 
-**Docstrings:** All functions must have docstrings.
+## Limitations
+
+- **Target variable is career-level**, not season-level. The model predicts total weighted AV, not year-by-year trajectories. A future iteration could model season-level AV with year index as an explicit feature.
+- **Small RB sample** — only 96 hold-out players for skill_run. Spearman of 0.57 is encouraging but should be interpreted with caution.
+- **Combine missingness** — players who skip the combine or individual drills receive imputed/flagged values. Predictions for these players carry wider implicit uncertainty.
+- **No availability model** — the `availability_factor` in the Sleeper Score is derived from proxy signals, not a dedicated injury/games-played model. Building one is a natural next step.
+- **No conference or opponent adjustments** — college production is raw, not adjusted for strength of schedule.
