@@ -1,0 +1,337 @@
+DraftSleeper — Stage 2 Feature Audit
+
+======================================================================
+FILE: skill_pass_features_train.csv
+======================================================================
+Rows: 1,193
+Positions: {'WR': 648, 'TE': 298, 'QB': 247}
+Position groups: {'skill_pass': 1193}
+career_av: absent (correct)
+missing_outcome / weighted_av: consistent
+is_QB + is_WR + is_TE == 1: OK for all rows
+
+--- Flag columns ---
+  missing_outcome                    : 154 / 1,193 (12.9%)
+  missing_combine                    : 873 / 1,193 (73.2%)
+  missing_height_weight              : 215 / 1,193 (18.0%)
+  missing_college_stats              : 643 / 1,193 (53.9%)
+  missing_age                        : 1,193 / 1,193 (100.0%)
+  rec_yards_flag                     : 706 / 1,193 (59.2%)
+  pass_yards_flag                    : 964 / 1,193 (80.8%)
+
+--- Z-score columns (mean / std) ---
+  (expect ~0.0 / ~1.0 for train)
+  height_in_z                        : mean=-0.000  std=1.000
+  weight_lbs_z                       : mean=-0.000  std=1.000
+  forty_yard_z                       : mean=+0.000  std=1.000
+  vertical_jump_z                    : mean=-0.000  std=1.000
+  broad_jump_z                       : mean=+0.000  std=1.000
+  bench_reps_z                       : mean=-0.000  std=1.000
+  cone_drill_z                       : mean=-0.000  std=1.000
+  shuttle_z                          : mean=+0.000  std=1.000
+  speed_score_z                      : mean=+0.000  std=1.000
+  burst_score_z                      : mean=+0.000  std=1.000
+  agility_score_z                    : mean=-0.000  std=1.000
+  bmi_z                              : mean=-0.000  std=1.000
+
+weighted_av (non-missing, n=1,039): min=-4.0  p25=1.0  median=7.0  p75=23.0  max=184.0
+
+--- Null rates >0% (feature columns only, descending) ---
+  td_int_ratio                            : 90.5%  (expected — covered by existing flag/structure)
+  completion_pct                          : 90.5%  (expected — covered by existing flag/structure)
+  yards_per_attempt                       : 90.5%  (expected — covered by existing flag/structure)
+  col_pass_yards                          : 80.8%  (expected — covered by existing flag/structure)
+  col_pass_tds                            : 80.7%  (expected — covered by existing flag/structure)
+  col_pass_attempts                       : 80.7%  (expected — covered by existing flag/structure)
+  col_pass_completions                    : 80.7%  (expected — covered by existing flag/structure)
+  col_pass_ints                           : 80.7%  (expected — covered by existing flag/structure)
+  col_rush_yards                          : 72.3%  (expected — covered by existing flag/structure)
+  col_rush_tds                            : 66.6%  (expected — covered by existing flag/structure)
+  col_rush_attempts                       : 66.6%  (expected — covered by existing flag/structure)
+  dominator_rating                        : 63.5%  (expected — covered by existing flag/structure)
+  yards_per_reception                     : 63.5%  (expected — covered by existing flag/structure)
+  rec_td_rate                             : 63.4%  (expected — covered by existing flag/structure)
+  bench_reps                              : 61.7%  (expected — covered by existing flag/structure)
+  bench_reps_z                            : 61.7%
+  col_rec_yards                           : 59.2%
+  col_receptions                          : 59.0%
+  col_rec_tds                             : 59.0%
+  agility_score                           : 47.1%
+  agility_score_z                         : 47.1%
+  cone_drill                              : 45.9%
+  cone_drill_z                            : 45.9%
+  shuttle_z                               : 44.9%
+  shuttle                                 : 44.9%
+  burst_score                             : 37.8%
+  burst_score_z                           : 37.8%
+  broad_jump_z                            : 36.6%
+  broad_jump                              : 36.6%
+  vertical_jump_z                         : 35.3%
+  vertical_jump                           : 35.3%
+  forty_yard                              : 20.6%
+  forty_yard_z                            : 20.6%
+  speed_score_z                           : 20.6%
+  speed_score                             : 20.6%
+  draft_team_av                           : 19.1%
+  weight_lbs_z                            : 18.0%
+  height_in_z                             : 18.0%
+  bmi_z                                   : 18.0%
+  bmi                                     : 18.0%
+  weight_lbs                              : 18.0%
+  height_in                               : 18.0%
+  nfl_games                               : 12.9%
+  weighted_av                             : 12.9%
+  cfb_id                                  : 10.6%
+  gsis_id                                 : 6.8%
+  pfr_id                                  : 6.3%
+  college                                 : 0.1%
+
+======================================================================
+FILE: skill_pass_features_holdout.csv
+======================================================================
+Rows: 292
+Positions: {'WR': 166, 'TE': 69, 'QB': 57}
+Position groups: {'skill_pass': 292}
+career_av: absent (correct)
+missing_outcome / weighted_av: consistent
+is_QB + is_WR + is_TE == 1: OK for all rows
+
+--- Flag columns ---
+  missing_outcome                    : 11 / 292 (3.8%)
+  missing_combine                    : 249 / 292 (85.3%)
+  missing_height_weight              : 38 / 292 (13.0%)
+  missing_college_stats              : 10 / 292 (3.4%)
+  missing_age                        : 292 / 292 (100.0%)
+  rec_yards_flag                     : 34 / 292 (11.6%)
+  pass_yards_flag                    : 190 / 292 (65.1%)
+
+--- Z-score columns (mean / std) ---
+  (may differ from 0/1 — expected for holdout)
+  height_in_z                        : mean=-0.091  std=1.064
+  weight_lbs_z                       : mean=-0.234  std=0.963
+  forty_yard_z                       : mean=-0.378  std=0.804
+  vertical_jump_z                    : mean=+0.351  std=0.870
+  broad_jump_z                       : mean=+0.675  std=0.842
+  bench_reps_z                       : mean=-0.057  std=0.804
+  cone_drill_z                       : mean=+0.145  std=0.882
+  shuttle_z                          : mean=+0.358  std=0.942
+  speed_score_z                      : mean=+0.192  std=0.879
+  burst_score_z                      : mean=+0.603  std=0.849
+  agility_score_z                    : mean=+0.259  std=0.959
+  bmi_z                              : mean=-0.288  std=0.898
+
+weighted_av (non-missing, n=281): min=0.0  p25=1.0  median=5.0  p75=14.0  max=79.0
+
+--- Null rates >0% (feature columns only, descending) ---
+  td_int_ratio                            : 81.2%  (expected — covered by existing flag/structure)
+  completion_pct                          : 81.2%  (expected — covered by existing flag/structure)
+  yards_per_attempt                       : 81.2%  (expected — covered by existing flag/structure)
+  bench_reps                              : 71.9%  (expected — covered by existing flag/structure)
+  bench_reps_z                            : 71.9%
+  agility_score_z                         : 65.4%
+  agility_score                           : 65.4%  (expected — covered by existing flag/structure)
+  col_pass_tds                            : 65.1%  (expected — covered by existing flag/structure)
+  col_pass_yards                          : 65.1%  (expected — covered by existing flag/structure)
+  col_pass_attempts                       : 65.1%  (expected — covered by existing flag/structure)
+  col_pass_completions                    : 65.1%  (expected — covered by existing flag/structure)
+  col_pass_ints                           : 65.1%  (expected — covered by existing flag/structure)
+  cone_drill                              : 62.3%  (expected — covered by existing flag/structure)
+  cone_drill_z                            : 62.3%
+  shuttle_z                               : 59.6%
+  shuttle                                 : 59.6%
+  burst_score                             : 36.3%
+  burst_score_z                           : 36.3%
+  broad_jump                              : 36.0%
+  broad_jump_z                            : 36.0%
+  speed_score_z                           : 34.9%
+  speed_score                             : 34.9%
+  forty_yard_z                            : 34.2%
+  forty_yard                              : 34.2%
+  col_rush_yards                          : 34.2%
+  vertical_jump_z                         : 33.9%
+  vertical_jump                           : 33.9%
+  col_rush_tds                            : 25.3%
+  col_rush_attempts                       : 25.3%
+  dominator_rating                        : 22.3%
+  rec_td_rate                             : 22.3%
+  yards_per_reception                     : 22.3%
+  height_in                               : 13.0%
+  weight_lbs                              : 13.0%
+  bmi_z                                   : 13.0%
+  bmi                                     : 13.0%
+  weight_lbs_z                            : 13.0%
+  height_in_z                             : 13.0%
+  col_rec_yards                           : 11.6%
+  col_receptions                          : 11.0%
+  col_rec_tds                             : 11.0%
+  draft_team_av                           : 7.5%
+  cfb_id                                  : 4.5%
+  nfl_games                               : 3.8%
+  weighted_av                             : 3.8%
+  gsis_id                                 : 0.3%
+
+======================================================================
+FILE: skill_run_features_train.csv
+======================================================================
+Rows: 464
+Positions: {'RB': 464}
+Position groups: {'skill_run': 464}
+career_av: absent (correct)
+missing_outcome / weighted_av: consistent
+
+--- Flag columns ---
+  missing_outcome                    : 43 / 464 (9.3%)
+  missing_combine                    : 272 / 464 (58.6%)
+  missing_height_weight              : 75 / 464 (16.2%)
+  missing_college_stats              : 239 / 464 (51.5%)
+  missing_age                        : 464 / 464 (100.0%)
+  rush_yards_flag                    : 240 / 464 (51.7%)
+  rec_yards_flag                     : 241 / 464 (51.9%)
+
+--- Z-score columns (mean / std) ---
+  (expect ~0.0 / ~1.0 for train)
+  height_in_z                        : mean=+0.000  std=1.000
+  weight_lbs_z                       : mean=+0.000  std=1.000
+  forty_yard_z                       : mean=-0.000  std=1.000
+  vertical_jump_z                    : mean=+0.000  std=1.000
+  broad_jump_z                       : mean=+0.000  std=1.000
+  bench_reps_z                       : mean=+0.000  std=1.000
+  cone_drill_z                       : mean=+0.000  std=1.000
+  shuttle_z                          : mean=-0.000  std=1.000
+  speed_score_z                      : mean=+0.000  std=1.000
+  burst_score_z                      : mean=-0.000  std=1.000
+  agility_score_z                    : mean=-0.000  std=1.000
+  bmi_z                              : mean=-0.000  std=1.000
+
+weighted_av (non-missing, n=421): min=0.0  p25=1.0  median=8.0  p75=25.0  max=129.0
+
+--- Null rates >0% (feature columns only, descending) ---
+  col_pass_yards                          : 86.9%  (expected — covered by existing flag/structure)
+  col_pass_tds                            : 86.9%  (expected — covered by existing flag/structure)
+  col_pass_completions                    : 86.9%  (expected — covered by existing flag/structure)
+  col_pass_ints                           : 86.9%  (expected — covered by existing flag/structure)
+  col_pass_attempts                       : 86.9%  (expected — covered by existing flag/structure)
+  reception_rate                          : 51.9%
+  col_rec_yards                           : 51.9%
+  yards_per_carry                         : 51.9%
+  agility_score_z                         : 51.7%
+  col_rush_yards                          : 51.7%
+  agility_score                           : 51.7%
+  rush_td_rate                            : 51.7%
+  col_rush_attempts                       : 51.5%
+  col_rush_tds                            : 51.5%
+  col_rec_tds                             : 51.1%
+  col_receptions                          : 51.1%
+  yards_from_scrimmage                    : 50.9%
+  cone_drill                              : 49.8%
+  cone_drill_z                            : 49.8%
+  shuttle                                 : 49.4%
+  shuttle_z                               : 49.4%
+  bench_reps_z                            : 35.1%
+  bench_reps                              : 35.1%
+  burst_score_z                           : 32.8%
+  burst_score                             : 32.8%
+  broad_jump                              : 32.5%
+  broad_jump_z                            : 32.5%
+  vertical_jump                           : 31.0%
+  vertical_jump_z                         : 31.0%
+  forty_yard_z                            : 18.1%
+  forty_yard                              : 18.1%
+  speed_score_z                           : 18.1%
+  speed_score                             : 18.1%
+  height_in_z                             : 16.2%
+  bmi                                     : 16.2%
+  weight_lbs                              : 16.2%
+  draft_team_av                           : 16.2%
+  height_in                               : 16.2%
+  bmi_z                                   : 16.2%
+  weight_lbs_z                            : 16.2%
+  weighted_av                             : 9.3%
+  nfl_games                               : 9.3%
+  cfb_id                                  : 7.1%
+  gsis_id                                 : 4.5%
+  pfr_id                                  : 4.3%
+
+======================================================================
+FILE: skill_run_features_holdout.csv
+======================================================================
+Rows: 98
+Positions: {'RB': 98}
+Position groups: {'skill_run': 98}
+career_av: absent (correct)
+missing_outcome / weighted_av: consistent
+
+--- Flag columns ---
+  missing_outcome                    : 2 / 98 (2.0%)
+  missing_combine                    : 81 / 98 (82.7%)
+  missing_height_weight              : 16 / 98 (16.3%)
+  missing_college_stats              : 2 / 98 (2.0%)
+  missing_age                        : 98 / 98 (100.0%)
+  rush_yards_flag                    : 3 / 98 (3.1%)
+  rec_yards_flag                     : 3 / 98 (3.1%)
+
+--- Z-score columns (mean / std) ---
+  (may differ from 0/1 — expected for holdout)
+  height_in_z                        : mean=-0.349  std=0.880
+  weight_lbs_z                       : mean=-0.523  std=0.650
+  forty_yard_z                       : mean=-0.457  std=0.670
+  vertical_jump_z                    : mean=+0.093  std=0.985
+  broad_jump_z                       : mean=+0.481  std=0.712
+  bench_reps_z                       : mean=-0.100  std=0.815
+  cone_drill_z                       : mean=-0.264  std=0.766
+  shuttle_z                          : mean=-0.183  std=0.768
+  speed_score_z                      : mean=+0.132  std=0.932
+  burst_score_z                      : mean=+0.412  std=0.816
+  agility_score_z                    : mean=-0.305  std=0.796
+  bmi_z                              : mean=-0.380  std=0.746
+
+weighted_av (non-missing, n=96): min=0.0  p25=1.0  median=4.0  p75=18.0  max=58.0
+
+--- Null rates >0% (feature columns only, descending) ---
+  agility_score_z                         : 77.6%
+  agility_score                           : 77.6%  (expected — covered by existing flag/structure)
+  col_pass_yards                          : 77.6%  (expected — covered by existing flag/structure)
+  col_pass_ints                           : 76.5%  (expected — covered by existing flag/structure)
+  col_pass_tds                            : 76.5%  (expected — covered by existing flag/structure)
+  col_pass_attempts                       : 76.5%  (expected — covered by existing flag/structure)
+  col_pass_completions                    : 76.5%  (expected — covered by existing flag/structure)
+  cone_drill_z                            : 75.5%
+  shuttle_z                               : 75.5%
+  shuttle                                 : 75.5%  (expected — covered by existing flag/structure)
+  cone_drill                              : 75.5%  (expected — covered by existing flag/structure)
+  bench_reps                              : 63.3%  (expected — covered by existing flag/structure)
+  bench_reps_z                            : 63.3%
+  burst_score                             : 33.7%
+  broad_jump                              : 33.7%
+  burst_score_z                           : 33.7%
+  broad_jump_z                            : 33.7%
+  speed_score_z                           : 30.6%
+  speed_score                             : 30.6%
+  forty_yard_z                            : 29.6%
+  forty_yard                              : 29.6%
+  vertical_jump                           : 27.6%
+  vertical_jump_z                         : 27.6%
+  bmi                                     : 16.3%
+  bmi_z                                   : 16.3%
+  height_in                               : 16.3%
+  height_in_z                             : 16.3%
+  weight_lbs                              : 15.3%
+  weight_lbs_z                            : 15.3%
+  draft_team_av                           : 6.1%
+  cfb_id                                  : 3.1%
+  yards_per_carry                         : 3.1%
+  col_rec_yards                           : 3.1%
+  col_rush_yards                          : 3.1%
+  yards_from_scrimmage                    : 2.0%
+  col_rush_attempts                       : 2.0%
+  nfl_games                               : 2.0%
+  reception_rate                          : 2.0%
+  rush_td_rate                            : 2.0%
+  weighted_av                             : 2.0%
+  col_rec_tds                             : 2.0%
+  col_rush_tds                            : 2.0%
+  col_receptions                          : 2.0%
+
+======================================================================
+GATE RESULT: PASS — ready for Stage 3
+======================================================================

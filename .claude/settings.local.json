@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python -m py_compile src/data_preparation/load_and_split.py)",
+      "Bash(.venv/Scripts/python -m py_compile src/data_preparation/audit_data.py)",
+      "Bash(.venv/Scripts/python -m py_compile src/feature_engineering/shared_features.py)",
+      "Bash(.venv/Scripts/python -m py_compile src/feature_engineering/engineering_skill_pass.py)",
+      "Bash(.venv/Scripts/python -m py_compile src/feature_engineering/engineering_skill_run.py)",
+      "Bash(.venv/Scripts/python -m py_compile src/feature_engineering/feature_audit.py)",
+      "Bash(.venv/Scripts/python -m src.feature_engineering.feature_audit)",
+      "Bash(.venv/Scripts/python -c \"import xgboost; import optuna; import sklearn; import joblib; print\\(''xgboost'', xgboost.__version__\\); print\\(''optuna'', optuna.__version__\\); print\\(''sklearn'', sklearn.__version__\\); print\\(''joblib'', joblib.__version__\\)\")",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python -c \"import xgboost, optuna, sklearn, joblib; print\\(''xgboost'', xgboost.__version__\\); print\\(''optuna'', optuna.__version__\\); print\\(''sklearn'', sklearn.__version__\\); print\\(''joblib'', joblib.__version__\\)\")",
+      "Bash(for f:*)",
+      "Bash(do .venv/Scripts/python -m py_compile $f)",
+      "Bash(echo \"$f: OK\")",
+      "Bash(done)"
+    ]
+  }
+}
