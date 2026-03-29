@@ -4,4 +4,5 @@ venv/
 __pycache__
 __init__.py
 .pipeline_cache.parquet
+.DS_Store
 nfl_prospects.csv
