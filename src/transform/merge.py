@@ -185,6 +185,12 @@ def _aggregate_college_stats(
     if raw.empty:
         return pd.DataFrame(columns=["cfbd_player_id"])
 
+    # Guard: ensure stat is numeric before summing. If the ingest layer already
+    # coerced it this is a no-op; it prevents string-concatenation bugs if the
+    # cache was written before the fix was applied.
+    raw = raw.copy()
+    raw["stat"] = pd.to_numeric(raw["stat"], errors="coerce")
+
     agg = (
         raw.groupby(["player_id", "col"])["stat"]
         .sum()

@@ -72,5 +72,13 @@ def fetch_raw_college_stats() -> pd.DataFrame:
                     time.sleep(_REQUEST_DELAY)
 
     df = pd.DataFrame(rows)
+
+    # CFBD occasionally returns stat values as strings rather than numbers.
+    # Coerce to float here so that groupby.sum() adds numerically instead of
+    # concatenating strings (which would produce wildly inflated values like
+    # 142183231 instead of 556 for three seasons of 142 + 183 + 231).
+    if not df.empty:
+        df["stat"] = pd.to_numeric(df["stat"], errors="coerce")
+
     print(f"[CFBD] Raw stat records fetched: {len(df)}")
     return df

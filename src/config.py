@@ -27,11 +27,13 @@ STAT_COLUMN_MAP: dict[tuple[str, str], str] = {
     ("passing", "INT"):         "col_pass_ints",
     ("passing", "ATT"):         "col_pass_attempts",
     ("passing", "COMPLETIONS"): "col_pass_completions",
-    # Rushing
-    ("rushing", "YDS"):  "col_rush_yards",
-    ("rushing", "TD"):   "col_rush_tds",
-    ("rushing", "ATT"):  "col_rush_attempts",
-    ("rushing", "CAR"):  "col_rush_attempts",  # CFBD uses CAR and ATT interchangeably
+    # Rushing — CFBD uses CAR (carries) as the primary rush-attempt stat type;
+    # ATT is kept as a fallback for older seasons that may use it instead.
+    # They should never both appear for the same player/season, but if they do
+    # the groupby in _aggregate_college_stats will sum them — so only map one.
+    ("rushing", "YDS"): "col_rush_yards",
+    ("rushing", "TD"):  "col_rush_tds",
+    ("rushing", "CAR"): "col_rush_attempts",
     # Receiving
     ("receiving", "YDS"): "col_rec_yards",
     ("receiving", "TD"):  "col_rec_tds",
