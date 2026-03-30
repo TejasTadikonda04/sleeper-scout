@@ -1,0 +1,98 @@
+{
+  "skill_pass__height_in": {
+    "mean": 74.07055214723927,
+    "std": 2.513043130282012
+  },
+  "skill_pass__weight_lbs": {
+    "mean": 219.80879345603273,
+    "std": 25.30399097856854
+  },
+  "skill_pass__forty_yard": {
+    "mean": 4.61325237592397,
+    "std": 0.1947030662809152
+  },
+  "skill_pass__vertical_jump": {
+    "mean": 34.34974093264249,
+    "std": 3.597911548019979
+  },
+  "skill_pass__broad_jump": {
+    "mean": 117.89285714285714,
+    "std": 7.259095361565828
+  },
+  "skill_pass__bench_reps": {
+    "mean": 17.711159737417944,
+    "std": 5.206244792196205
+  },
+  "skill_pass__cone_drill": {
+    "mean": 7.027224806201551,
+    "std": 0.23098671818953176
+  },
+  "skill_pass__shuttle": {
+    "mean": 4.256240487062405,
+    "std": 0.16258775305558792
+  },
+  "skill_pass__speed_score": {
+    "mean": 97.53544460734811,
+    "std": 12.369058424915115
+  },
+  "skill_pass__burst_score": {
+    "mean": 76.16206199460916,
+    "std": 5.074804736229892
+  },
+  "skill_pass__agility_score": {
+    "mean": 5.641450079239303,
+    "std": 0.1760336736252292
+  },
+  "skill_pass__bmi": {
+    "mean": 28.086132609419476,
+    "std": 2.05413094570182
+  },
+  "skill_run__height_in": {
+    "mean": 70.90488431876607,
+    "std": 1.821606235666884
+  },
+  "skill_run__weight_lbs": {
+    "mean": 219.91773778920307,
+    "std": 17.66114084367543
+  },
+  "skill_run__forty_yard": {
+    "mean": 4.556368421052632,
+    "std": 0.13531150829542812
+  },
+  "skill_run__vertical_jump": {
+    "mean": 34.4953125,
+    "std": 3.2363738797454213
+  },
+  "skill_run__broad_jump": {
+    "mean": 118.4888178913738,
+    "std": 6.082291146050138
+  },
+  "skill_run__bench_reps": {
+    "mean": 20.441860465116278,
+    "std": 4.967303949541621
+  },
+  "skill_run__cone_drill": {
+    "mean": 7.086223175965665,
+    "std": 0.24923050882571526
+  },
+  "skill_run__shuttle": {
+    "mean": 4.26672340425532,
+    "std": 0.16195885598230358
+  },
+  "skill_run__speed_score": {
+    "mean": 102.34872058123422,
+    "std": 9.784186487994669
+  },
+  "skill_run__burst_score": {
+    "mean": 76.46955128205128,
+    "std": 4.231194725041641
+  },
+  "skill_run__agility_score": {
+    "mean": 5.67638392857143,
+    "std": 0.18760373491724708
+  },
+  "skill_run__bmi": {
+    "mean": 30.732152836803202,
+    "std": 1.8813483976583216
+  }
+}

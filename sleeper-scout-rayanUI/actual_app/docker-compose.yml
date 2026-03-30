@@ -1,0 +1,26 @@
+services:
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    volumes:
+      - ./backend/data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"   # ← change expose to ports
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:4173"
+    depends_on:
+      - backend
