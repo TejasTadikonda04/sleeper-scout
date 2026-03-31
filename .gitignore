@@ -9,3 +9,4 @@ __init__.py
 nfl_prospects.csv
 2026_prospects.csv
 2026_combine/
+mock_drafts/
