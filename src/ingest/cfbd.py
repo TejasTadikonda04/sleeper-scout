@@ -34,15 +34,22 @@ def _get_with_retry(url: str, params: dict) -> requests.Response:
     return resp  # return last response even if still 429
 
 
-def fetch_raw_college_stats() -> pd.DataFrame:
+def fetch_raw_college_stats(
+    start_year: int | None = None,
+    end_year: int | None = None,
+) -> pd.DataFrame:
     """
-    Fetch all player season stats from CFBD for seasons CFBD_START_YEAR–END_YEAR
-    across all CFBD_STAT_CATEGORIES.
+    Fetch all player season stats from CFBD for the given year range across all
+    CFBD_STAT_CATEGORIES.  Defaults to CFBD_START_YEAR–END_YEAR from config.
 
     Returns a long-format DataFrame:
         player_id | player_name | team | season | category | stat_type | stat
     """
-    years = range(CFBD_START_YEAR, END_YEAR + 1)
+    if start_year is None:
+        start_year = CFBD_START_YEAR
+    if end_year is None:
+        end_year = END_YEAR
+    years = range(start_year, end_year + 1)
     rows: list[dict] = []
     total_calls = len(list(years)) * len(CFBD_STAT_CATEGORIES)
 
