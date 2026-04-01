@@ -19,10 +19,12 @@ Environment variables (same .env as run_pipeline.py):
 import sys
 import re
 from pathlib import Path
+from collections import defaultdict
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
+from rapidfuzz import fuzz, process as fuzz_process
 
 from src.config import CFBD_API_KEY
 from src.ingest.cfbd import fetch_raw_college_stats
@@ -33,13 +35,64 @@ COMBINE_DIR  = Path(__file__).parent.parent / "2026_combine"
 OUTPUT_PATH  = Path(__file__).parent.parent / "2026_prospects.csv"
 CACHE_PATH   = Path(__file__).parent.parent / ".2026_cfbd_cache.parquet"
 
+MOCK_DRAFTS_DIR = Path(__file__).parent.parent / "mock_drafts"
+
+# Projected 2026 rookie wage scale (total contract value by pick number).
+# Based on the 2024 scale with a 15.5% inflation multiplier (~$295M cap).
+ROOKIE_WAGE_SCALE: dict[int, int] = {
+    1:45600000,2:43600000,3:42300000,4:40900000,5:38100000,6:35700000,
+    7:33300000,8:30900000,9:28500000,10:26200000,11:24900000,12:23600000,
+    13:22300000,14:21000000,15:19800000,16:18600000,17:18300000,18:18000000,
+    19:17800000,20:17500000,21:17200000,22:17000000,23:16700000,24:16500000,
+    25:16200000,26:15900000,27:15700000,28:15400000,29:15200000,30:14900000,
+    31:14600000,32:14400000,33:14100000,34:13900000,35:13700000,36:13400000,
+    37:13200000,38:13000000,39:12800000,40:12600000,41:12300000,42:12100000,
+    43:11900000,44:11700000,45:11500000,46:11200000,47:11000000,48:10800000,
+    49:10600000,50:10400000,51:10200000,52:9900000,53:9700000,54:9500000,
+    55:9300000,56:9100000,57:8800000,58:8600000,59:8400000,60:8200000,
+    61:8000000,62:7800000,63:7600000,64:7400000,65:7360000,66:7330000,
+    67:7300000,68:7260000,69:7230000,70:7200000,71:7160000,72:7130000,
+    73:7100000,74:7060000,75:7030000,76:7000000,77:6960000,78:6930000,
+    79:6900000,80:6860000,81:6830000,82:6800000,83:6760000,84:6730000,
+    85:6700000,86:6660000,87:6630000,88:6600000,89:6560000,90:6530000,
+    91:6500000,92:6460000,93:6430000,94:6400000,95:6360000,96:6330000,
+    97:6300000,98:6260000,99:6230000,100:6200000,101:6180000,102:6160000,
+    103:6140000,104:6120000,105:6100000,106:6080000,107:6060000,108:6040000,
+    109:6020000,110:6000000,111:5980000,112:5960000,113:5940000,114:5920000,
+    115:5900000,116:5880000,117:5860000,118:5840000,119:5820000,120:5800000,
+    121:5780000,122:5760000,123:5740000,124:5720000,125:5700000,126:5680000,
+    127:5660000,128:5640000,129:5620000,130:5600000,131:5580000,132:5560000,
+    133:5540000,134:5520000,135:5500000,136:5480000,137:5460000,138:5440000,
+    139:5420000,140:5400000,141:5380000,142:5360000,143:5340000,144:5320000,
+    145:5300000,146:5280000,147:5260000,148:5240000,149:5220000,150:5200000,
+    151:5190000,152:5180000,153:5170000,154:5160000,155:5150000,156:5140000,
+    157:5130000,158:5120000,159:5110000,160:5100000,161:5090000,162:5080000,
+    163:5070000,164:5060000,165:5050000,166:5040000,167:5030000,168:5020000,
+    169:5010000,170:5000000,171:4990000,172:4980000,173:4970000,174:4960000,
+    175:4950000,176:4940000,177:4930000,178:4920000,179:4910000,180:4900000,
+    181:4900000,182:4900000,183:4900000,184:4900000,185:4900000,186:4900000,
+    187:4900000,188:4900000,189:4900000,190:4900000,191:4900000,192:4900000,
+    193:4900000,194:4900000,195:4900000,196:4900000,197:4900000,198:4900000,
+    199:4900000,200:4900000,201:4890000,202:4890000,203:4890000,204:4880000,
+    205:4880000,206:4880000,207:4870000,208:4870000,209:4870000,210:4860000,
+    211:4860000,212:4860000,213:4850000,214:4850000,215:4850000,216:4840000,
+    217:4840000,218:4840000,219:4830000,220:4830000,221:4830000,222:4820000,
+    223:4820000,224:4820000,225:4810000,226:4810000,227:4810000,228:4800000,
+    229:4800000,230:4800000,231:4790000,232:4790000,233:4790000,234:4780000,
+    235:4780000,236:4780000,237:4770000,238:4770000,239:4770000,240:4760000,
+    241:4760000,242:4760000,243:4750000,244:4750000,245:4750000,246:4740000,
+    247:4740000,248:4740000,249:4730000,250:4730000,251:4730000,252:4720000,
+    253:4720000,254:4720000,255:4710000,256:4710000,257:4700000,
+}
+
 DRAFT_YEAR   = 2026
 # Fetch college stats back to 2018 — earliest a 2026 draftee could have played
 CFBD_FETCH_START = 2018
 
 COLUMN_ORDER = [
     "pfr_id", "cfb_id", "gsis_id", "player_name", "position",
-    "draft_year", "draft_round", "draft_pick", "draft_team", "college",
+    "draft_year", "projected_draft_pick", "projected_contract_value",
+    "draft_round", "draft_pick", "draft_team", "college",
     "height_in", "weight_lbs", "forty_yard", "vertical_jump", "broad_jump",
     "bench_reps", "cone_drill", "shuttle",
     "col_pass_completions", "col_pass_attempts", "col_pass_yards",
@@ -222,6 +275,132 @@ def clean_combine_2026(raw: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Mock draft ADP
+# ---------------------------------------------------------------------------
+
+def _parse_mock_file(path: Path) -> list[tuple[int, str]]:
+    """
+    Parse a mock draft text file of the form:
+        1. Player Name
+        2. Player Name
+        ...
+    Returns a list of (pick_number, normalised_name) tuples.
+    """
+    picks = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = re.match(r"^(\d+)\.\s+(.+)$", line)
+        if m:
+            pick = int(m.group(1))
+            name = normalize_name(m.group(2).strip())
+            picks.append((pick, name))
+    return picks
+
+
+def load_all_mock_drafts() -> dict[str, list[tuple[int, str]]]:
+    """Return {filename: [(pick, normalised_name), ...]} for every mock draft."""
+    mocks = {}
+    for txt in sorted(MOCK_DRAFTS_DIR.rglob("*.txt")):
+        picks = _parse_mock_file(txt)
+        if picks:
+            mocks[str(txt.relative_to(MOCK_DRAFTS_DIR))] = picks
+            print(f"  Loaded {len(picks):3d} picks  ← {txt.relative_to(MOCK_DRAFTS_DIR)}")
+    return mocks
+
+
+def compute_adp(
+    prospects: pd.DataFrame,
+    mocks: dict[str, list[tuple[int, str]]],
+) -> pd.Series:
+    """
+    For each prospect, average their pick number across every mock where they appear.
+
+    Matching strategy (in order):
+      1. Exact normalised-name match.
+      2. Fuzzy token_set_ratio ≥ 80 against the prospect's normalised name
+         (handles "Vega Ioane" → "Olaivavega Ioane", suffix differences, etc.).
+
+    Returns a Series of float ADP values indexed like `prospects`, with NaN for
+    players who appear in no mock.
+    """
+    # Build a flat list of all (pick, norm_name) pairs across all mocks,
+    # keeping one entry per (mock_file, player) — some mocks list a player twice
+    # (rare, but guard against it).
+    mock_appearances: list[tuple[str, int, str]] = []   # (source, pick, norm_name)
+    for source, picks in mocks.items():
+        seen_in_mock: set[str] = set()
+        for pick, norm_name in picks:
+            if norm_name not in seen_in_mock:
+                mock_appearances.append((source, pick, norm_name))
+                seen_in_mock.add(norm_name)
+
+    # Unique normalised names that appear in any mock
+    all_mock_names = list({name for _, _, name in mock_appearances})
+
+    # For each prospect, collect all pick numbers they appear at
+    prospect_norm_names = prospects["player_name"].apply(normalize_name).tolist()
+
+    # name → list of (source, pick)
+    prospect_picks: dict[int, list[tuple[str, int]]] = defaultdict(list)
+
+    for source, pick, mock_name in mock_appearances:
+        # Step 1: exact match
+        for idx, pname in enumerate(prospect_norm_names):
+            if mock_name == pname:
+                prospect_picks[idx].append((source, pick))
+                break
+        else:
+            # Step 2: fuzzy match against prospect names
+            result = fuzz_process.extractOne(
+                mock_name,
+                prospect_norm_names,
+                scorer=fuzz.token_set_ratio,
+                score_cutoff=80,
+            )
+            if result:
+                matched_name, score, idx = result
+                prospect_picks[idx].append((source, pick))
+
+    # Compute average pick per prospect
+    adp_values = []
+    for idx in range(len(prospects)):
+        appearances = prospect_picks.get(idx, [])
+        if appearances:
+            avg = sum(p for _, p in appearances) / len(appearances)
+            adp_values.append(round(avg, 1))
+        else:
+            adp_values.append(None)
+
+    return pd.Series(adp_values, index=prospects.index, name="projected_draft_pick")
+
+
+# ---------------------------------------------------------------------------
+# Contract value lookup
+# ---------------------------------------------------------------------------
+
+def adp_to_contract_value(adp: float | None) -> int | None:
+    """
+    Linearly interpolate the rookie wage scale for a fractional ADP.
+    e.g. ADP 5.4 → 60% of pick-5 value + 40% of pick-6 value.
+    ADPs beyond pick 257 or null return None.
+    """
+    if adp is None or pd.isna(adp):
+        return None
+    lo = int(adp)
+    hi = lo + 1
+    frac = adp - lo
+    val_lo = ROOKIE_WAGE_SCALE.get(lo)
+    val_hi = ROOKIE_WAGE_SCALE.get(hi)
+    if val_lo is None:
+        return None
+    if val_hi is None:
+        return val_lo
+    return round(val_lo + frac * (val_hi - val_lo))
+
+
+# ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
 
@@ -245,7 +424,7 @@ def main(from_cache: bool = False) -> None:
     print(f"  {prospects['position'].value_counts().to_dict()}")
 
     # ── Step 2: CFBD college stats ─────────────────────────────────────────
-    print("\n=== Step 2/3: Fetching CFBD college stats ===")
+    print("\n=== Step 2/4: Fetching CFBD college stats ===")
     if from_cache and CACHE_PATH.exists():
         print(f"  Loading from cache ({CACHE_PATH})")
         raw_stats = pd.read_parquet(CACHE_PATH)
@@ -267,8 +446,18 @@ def main(from_cache: bool = False) -> None:
                      "category", "stat_type", "stat"]
         )
 
-    # ── Step 3: Merge college stats + write ───────────────────────────────
-    print("\n=== Step 3/3: Merging college stats and writing CSV ===")
+    # ── Step 3: Mock draft ADP ─────────────────────────────────────────────
+    print("\n=== Step 3/4: Computing projected draft pick from mock drafts ===")
+    mocks = load_all_mock_drafts()
+    prospects["projected_draft_pick"] = compute_adp(prospects, mocks)
+    matched_adp = prospects["projected_draft_pick"].notna().sum()
+    print(f"  {matched_adp}/{len(prospects)} prospects matched to at least one mock draft")
+    prospects["projected_contract_value"] = prospects["projected_draft_pick"].apply(
+        adp_to_contract_value
+    )
+
+    # ── Step 4: Merge college stats + write ───────────────────────────────
+    print("\n=== Step 4/4: Merging college stats and writing CSV ===")
 
     # merge_college_stats needs a pfr_id column to use as a join key.
     # For 2026 prospects there are no pfr_ids yet, so we generate temporary
