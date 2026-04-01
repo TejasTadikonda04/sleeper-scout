@@ -4,11 +4,12 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, Search, SlidersHorizontal, Arro
 import { fetchPlayers, Player, Position, TierLabel, getTierColors, getScoreColor } from '../data/players';
 import { FilterDropdown } from '../components/ui/filter-dropdown';
 import { SuggestiveSearch } from '../components/ui/suggestive-search';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
 
 type SortField = 'name' | 'position' | 'college' | 'draftPick' | 'sleeperScore' | 'surplusValue' | 'breakoutProbability' | 'tier';
 type SortDir = 'asc' | 'desc';
 
-const POSITIONS: (Position | 'ALL')[] = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'DB'];
+const POSITIONS: (Position | 'ALL')[] = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const ROUNDS = [
   { label: 'All Rounds', value: 0 },
   { label: 'Round 1', value: 1 },
@@ -34,21 +35,35 @@ function SleeperBadge({ score }: { score: number }) {
   const color = getScoreColor(score);
   const bg = score >= 81 ? 'rgba(16,185,129,0.12)' : score >= 66 ? 'rgba(34,197,94,0.12)' : score >= 51 ? 'rgba(234,179,8,0.12)' : score >= 31 ? 'rgba(249,115,22,0.12)' : 'rgba(239,68,68,0.12)';
   return (
-    <span
-      className="inline-flex items-center justify-center w-11 h-7 rounded-md text-sm"
-      style={{ color, background: bg, fontWeight: 700, border: `1px solid ${color}30` }}
-    >
-      {score}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className="inline-flex items-center justify-center w-11 h-7 rounded-md text-sm cursor-help"
+          style={{ color, background: bg, fontWeight: 700, border: `1px solid ${color}30` }}
+        >
+          {score}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p className="max-w-xs text-xs font-medium">Sleeper Score: A composite score (0-100) combining college production, athletic testing, and physical attributes.</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
 function SurplusCell({ value }: { value: number }) {
   const isPos = value >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-sm ${isPos ? 'text-success' : 'text-destructive'}`} style={{ fontWeight: 600 }}>
-      {isPos ? '+' : ''}{value}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={`inline-flex items-center gap-0.5 text-sm cursor-help ${isPos ? 'text-success' : 'text-destructive'}`} style={{ fontWeight: 600 }}>
+          {isPos ? '+' : ''}{value}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p className="max-w-xs text-xs font-medium">Surplus Value: The difference between actual draft position and expected draft position based on player profile.</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -67,6 +82,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState<Position | 'ALL'>('ALL');
+  const [tierFilter, setTierFilter] = useState<TierLabel | 'ALL'>('ALL');
   const [roundFilter, setRoundFilter] = useState(0);
   const [scoreRange, setScoreRange] = useState({ min: 0, max: 100 });
   const [sortField, setSortField] = useState<SortField>('sleeperScore');
@@ -91,6 +107,7 @@ export function Dashboard() {
   const filtered = useMemo(() => {
     return players.filter(p => {
       if (posFilter !== 'ALL' && p.position !== posFilter) return false;
+      if (tierFilter !== 'ALL' && p.tier !== tierFilter) return false;
       if (roundFilter === 1 && p.draftRound !== 1) return false;
       if (roundFilter === 2 && p.draftRound !== 2) return false;
       if (roundFilter === 3 && p.draftRound < 3) return false;
@@ -98,7 +115,7 @@ export function Dashboard() {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.college.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [players, posFilter, roundFilter, scoreRange, search]);
+  }, [players, posFilter, tierFilter, roundFilter, scoreRange, search]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -142,12 +159,18 @@ export function Dashboard() {
       {/* Tier Summary Cards */}
       <div className="grid grid-cols-5 gap-3 mb-6">
         {(['High Upside', 'Safe Floor', 'Boom or Bust', 'Developmental', 'Overdrafted'] as TierLabel[]).map(tier => {
-          const { bg, text, border } = getTierColors(tier);
+          const { hex, bg, bgHover, bgSelected, text, border } = getTierColors(tier);
+          const isSelected = tierFilter === tier;
           return (
             <button
               key={tier}
-              onClick={() => {/* filter by tier - future enhancement */ }}
-              className={`p-3 rounded-lg border flex items-center gap-3 ${bg} ${border} text-left`}
+              onClick={() => setTierFilter(t => t === tier ? 'ALL' : tier)}
+              style={{ '--tier-color': hex } as React.CSSProperties}
+              className={`p-3 rounded-lg flex items-center gap-3 text-left transition-all duration-300 border border-transparent 
+                ${isSelected 
+                  ? `${bgSelected} border-[var(--tier-color)] shadow-[0_0_8px_var(--tier-color),inset_0_0_0_1px_var(--tier-color)] opacity-100` 
+                  : `${bg} ${border} ${bgHover} hover:border-[var(--tier-color)] hover:shadow-[0_0_8px_var(--tier-color),inset_0_0_0_1px_var(--tier-color)] opacity-80 hover:opacity-100`
+                }`}
             >
               <div className={`text-2xl ${text}`} style={{ fontWeight: 800 }}>{tierCounts[tier] || 0}</div>
               <div className={`text-sm leading-tight ${text}`} style={{ fontWeight: 600, opacity: 0.9 }}>
@@ -220,30 +243,44 @@ export function Dashboard() {
       {/* Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[900px] table-fixed">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider" style={{ fontWeight: 600, width: 36 }}>#</th>
                 {[
-                  { field: 'name' as SortField, label: 'Player' },
-                  { field: 'position' as SortField, label: 'Pos' },
-                  { field: 'college' as SortField, label: 'College' },
-                  { field: 'draftPick' as SortField, label: 'Draft' },
-                  { field: 'sleeperScore' as SortField, label: 'Sleeper Score' },
-                  { field: 'surplusValue' as SortField, label: 'Surplus Val.' },
-                  { field: 'breakoutProbability' as SortField, label: 'Breakout %' },
-                  { field: 'tier' as SortField, label: 'Tier' },
+                  { field: 'name' as SortField, label: 'Player', width: '18%' },
+                  { field: 'position' as SortField, label: 'Pos', width: '8%' },
+                  { field: 'college' as SortField, label: 'College', width: '16%' },
+                  { field: 'draftPick' as SortField, label: 'Draft', width: '9%' },
+                  { field: 'sleeperScore' as SortField, label: 'Sleeper Score', width: '14%', tooltip: 'A composite score (0-100) combining college production, athletic testing, and physical attributes.' },
+                  { field: 'surplusValue' as SortField, label: 'Surplus Val.', width: '8%', tooltip: 'The difference between actual draft position and expected draft position based on player profile.' },
+                  { field: 'breakoutProbability' as SortField, label: 'Breakout %', width: '11%' },
+                  { field: 'tier' as SortField, label: 'Tier', width: '8%' },
                 ].map(col => (
                   <th
                     key={col.field}
                     className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors select-none"
-                    style={{ fontWeight: 600 }}
+                    style={{ fontWeight: 600, width: col.width }}
                     onClick={() => handleSort(col.field)}
                   >
-                    <span className="flex items-center gap-1.5">
-                      {col.label}
-                      <SortIcon field={col.field} sortField={sortField} sortDir={sortDir} />
-                    </span>
+                    {col.tooltip ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1.5 underline underline-offset-4 decoration-dashed decoration-muted-foreground/50">
+                            {col.label}
+                            <SortIcon field={col.field} sortField={sortField} sortDir={sortDir} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="max-w-xs">{col.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        {col.label}
+                        <SortIcon field={col.field} sortField={sortField} sortDir={sortDir} />
+                      </span>
+                    )}
                   </th>
                 ))}
                 <th className="px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider w-10" style={{ fontWeight: 600 }}></th>

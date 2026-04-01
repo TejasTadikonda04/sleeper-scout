@@ -140,12 +140,12 @@ export async function fetchPlayers(): Promise<Player[]> {
 // Keep export utilities for components
 export function getTierColors(tier: TierLabel) {
   switch (tier) {
-    case 'High Upside': return { bg: 'bg-[rgba(57,255,20,0.1)]', text: 'text-[#39ff14]', border: 'border-[#39ff14]/30' };
-    case 'Safe Floor': return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-400/30' };
-    case 'Boom or Bust': return { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-400/30' };
-    case 'Developmental': return { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-400/30' };
-    case 'Overdrafted': return { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-400/30' };
-    default: return { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-400/30' };
+    case 'High Upside': return { hex: '#39ff14', bg: 'bg-[rgba(57,255,20,0.1)]', bgHover: 'hover:bg-[rgba(57,255,20,0.2)]', bgSelected: 'bg-[rgba(57,255,20,0.2)]', text: 'text-[#39ff14]', border: 'border-[#39ff14]/30' };
+    case 'Safe Floor': return { hex: '#60a5fa', bg: 'bg-blue-500/10', bgHover: 'hover:bg-blue-500/20', bgSelected: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-400/30' };
+    case 'Boom or Bust': return { hex: '#c084fc', bg: 'bg-purple-500/10', bgHover: 'hover:bg-purple-500/20', bgSelected: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-400/30' };
+    case 'Developmental': return { hex: '#facc15', bg: 'bg-yellow-500/10', bgHover: 'hover:bg-yellow-500/20', bgSelected: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-transparent' };
+    case 'Overdrafted': return { hex: '#f87171', bg: 'bg-red-500/10', bgHover: 'hover:bg-red-500/20', bgSelected: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-400/30' };
+    default: return { hex: '#94a3b8', bg: 'bg-slate-500/10', bgHover: 'hover:bg-slate-500/20', bgSelected: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-400/30' };
   }
 }
 
