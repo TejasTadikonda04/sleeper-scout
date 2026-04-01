@@ -18,18 +18,18 @@ weighted_av   : min=-4.0  p25=1.0  median=7.0  p75=23.0  max=184.0
   missing_college_stats         : 643 / 1,193 (53.9%)
 
 --- Null rates (columns with >0% nulls, descending) ---
-  col_pass_yards                          : 80.8%
-  col_pass_attempts                       : 80.7%
-  col_pass_completions                    : 80.7%
   col_pass_tds                            : 80.7%
   col_pass_ints                           : 80.7%
-  col_rush_yards                          : 72.3%
-  col_rush_attempts                       : 66.6%
+  col_pass_attempts                       : 80.7%
+  col_pass_yards                          : 80.7%
+  col_pass_completions                    : 80.7%
   col_rush_tds                            : 66.6%
+  col_rush_yards                          : 66.6%
+  col_rush_attempts                       : 66.6%
   bench_reps                              : 61.7%
-  col_rec_yards                           : 59.2%
-  col_rec_tds                             : 59.0%
   col_receptions                          : 59.0%
+  col_rec_tds                             : 59.0%
+  col_rec_yards                           : 59.0%
   cone_drill                              : 45.9%
   shuttle                                 : 44.9%
   broad_jump                              : 36.6%
@@ -72,14 +72,14 @@ weighted_av   : min=0.0  p25=1.0  median=5.0  p75=14.0  max=79.0
   cone_drill                              : 62.3%
   shuttle                                 : 59.6%
   broad_jump                              : 36.0%
-  col_rush_yards                          : 34.2%
   forty_yard                              : 34.2%
   vertical_jump                           : 33.9%
+  col_rush_yards                          : 25.3%
   col_rush_attempts                       : 25.3%
   col_rush_tds                            : 25.3%
   weight_lbs                              : 13.0%
   height_in                               : 13.0%
-  col_rec_yards                           : 11.6%
+  col_rec_yards                           : 11.0%
   col_rec_tds                             : 11.0%
   col_receptions                          : 11.0%
   draft_team_av                           : 7.5%
@@ -111,12 +111,12 @@ weighted_av   : min=0.0  p25=1.0  median=8.0  p75=25.0  max=129.0
   col_pass_attempts                       : 86.9%
   col_pass_yards                          : 86.9%
   col_pass_completions                    : 86.9%
-  col_rec_yards                           : 51.9%
-  col_rush_yards                          : 51.7%
-  col_rush_attempts                       : 51.5%
   col_rush_tds                            : 51.5%
+  col_rush_yards                          : 51.5%
+  col_rush_attempts                       : 51.5%
   col_rec_tds                             : 51.1%
   col_receptions                          : 51.1%
+  col_rec_yards                           : 51.1%
   cone_drill                              : 49.8%
   shuttle                                 : 49.4%
   bench_reps                              : 35.1%
@@ -150,11 +150,11 @@ weighted_av   : min=0.0  p25=1.0  median=4.0  p75=18.0  max=58.0
   missing_college_stats         : 2 / 98 (2.0%)
 
 --- Null rates (columns with >0% nulls, descending) ---
-  col_pass_yards                          : 77.6%
-  col_pass_attempts                       : 76.5%
-  col_pass_completions                    : 76.5%
   col_pass_tds                            : 76.5%
   col_pass_ints                           : 76.5%
+  col_pass_attempts                       : 76.5%
+  col_pass_yards                          : 76.5%
+  col_pass_completions                    : 76.5%
   cone_drill                              : 75.5%
   shuttle                                 : 75.5%
   bench_reps                              : 63.3%
@@ -165,12 +165,12 @@ weighted_av   : min=0.0  p25=1.0  median=4.0  p75=18.0  max=58.0
   weight_lbs                              : 15.3%
   draft_team_av                           : 6.1%
   cfb_id                                  : 3.1%
-  col_rec_yards                           : 3.1%
-  col_rush_yards                          : 3.1%
-  col_rec_tds                             : 2.0%
+  col_rush_yards                          : 2.0%
   col_rush_attempts                       : 2.0%
-  col_receptions                          : 2.0%
+  col_rec_tds                             : 2.0%
   col_rush_tds                            : 2.0%
+  col_rec_yards                           : 2.0%
+  col_receptions                          : 2.0%
   nfl_games                               : 2.0%
   weighted_av                             : 2.0%
 

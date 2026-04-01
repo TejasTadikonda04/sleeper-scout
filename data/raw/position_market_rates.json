@@ -1,0 +1,6 @@
+{
+  "QB":  {"elite": 0.18, "good": 0.10, "average": 0.05, "below": 0.02},
+  "WR":  {"elite": 0.10, "good": 0.06, "average": 0.03, "below": 0.01},
+  "TE":  {"elite": 0.08, "good": 0.05, "average": 0.025, "below": 0.01},
+  "RB":  {"elite": 0.06, "good": 0.035, "average": 0.02, "below": 0.01}
+}
