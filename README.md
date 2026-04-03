@@ -2,6 +2,8 @@
 
 An NFL draft prospect forecasting tool that predicts career value for skill-position players and surfaces undervalued picks through a Sleeper-style UI. Given a prospect's college production, combine metrics, and draft position, DraftSleeper produces a **Sleeper Score (0–100)** and draft window recommendation.
 
+Final UI GitHub Repository: https://github.com/vedhjaishankar/sleeper-scout
+
 ---
 
 ## What It Does
